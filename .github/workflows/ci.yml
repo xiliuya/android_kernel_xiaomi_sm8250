@@ -1,0 +1,68 @@
+name: magisk module build
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      target_branch:
+        description: '选择要构建的目标分支'
+        required: true
+        default: 'DroidSpace-fork'
+        type: choice
+        options:
+          - lineage-23.2
+          - DroidSpace-fork
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build a magisk module zip
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        if: ${{ !env.ACT }}
+        uses: actions/checkout@v4
+        with:
+          # 仅在 workflow_dispatch 触发且输入非空时使用指定分支，否则默认使用当前上下文 branch/tag
+          ref: ${{  inputs.target_branch || github.ref }}
+          fetch-depth: 1
+
+      - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
+      - run: echo "🖥️ The workflow is now ready to test your code on the runner."
+
+      - name: Install depend
+        run: |
+          if command -v sudo >/dev/null 2>&1; then
+            SUDO="sudo"
+          else
+            SUDO=""
+          fi
+          $SUDO apt-get update && $SUDO apt-get upgrade -y && $SUDO apt-get install -y bc bison build-essential ccache curl flex g++-multilib gcc-multilib git git-lfs gnupg gperf imagemagick protobuf-compiler python3-protobuf lib32readline-dev lib32z1-dev libdw-dev libelf-dev libgnutls28-dev lz4 libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev cpio python-is-python3 libssl-dev libelf-dev flex bison bc device-tree-compiler
+
+      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
+      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
+      - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
+
+      - name: List files in the repository
+        run: |
+          ls -la ${{ github.workspace }}
+
+      - name: fetch clang
+        run: bash fetch_android_clang.sh clang-r547379
+
+      - name: Build kernel
+        run: bash build.sh ${{ github.workspace }}
+
+      - run: echo "🍏 This job's status is ${{ job.status }}."
+
+      - name: Upload Release
+        # 仅在非 act 本地测试，且确实是 Push Tag 或手动触发时才执行发布
+        if: ${{ !env.ACT && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch') }}
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            out/arch/arm64/boot/Image
+            out/arch/arm64/boot/dtbo.img
