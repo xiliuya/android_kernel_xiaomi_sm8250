@@ -56,6 +56,13 @@ jobs:
       - name: Build kernel
         run: bash build.sh ${{ github.workspace }}
 
+      - name: build Anykernel3 zip
+        run: >
+          bash build_ak3.sh 
+          https://github.com/xiliuya/AnyKernel3.git 
+          out/arch/arm64/boot/Image
+          alioth_ak3.zip
+
       - run: echo "🍏 This job's status is ${{ job.status }}."
 
       # 3. 上传构建产物作为附件
@@ -69,6 +76,7 @@ jobs:
             out/arch/arm64/boot/
             build_errors.txt
             build.log
+            alioth_ak3.zip
           retention-days: 7          # 附件保存天数（可选，默认 90 天）
 
       - name: Upload Release
@@ -81,3 +89,4 @@ jobs:
             out/arch/arm64/boot/
             build_errors.txt
             build.log
+            alioth_ak3.zip
