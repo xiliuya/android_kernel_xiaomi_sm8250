@@ -23,8 +23,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository code
-        if: ${{ !env.ACT }}
         uses: actions/checkout@v4
+        if: ${{ !env.ACT }}
         with:
           # 仅在 workflow_dispatch 触发且输入非空时使用指定分支，否则默认使用当前上下文 branch/tag
           ref: ${{  inputs.target_branch || github.ref }}
@@ -90,7 +90,7 @@ jobs:
             build.log
             alioth_ak3.zip
             alioth_apatch_ak3.zip
-            out/linux-*.tar.bz2
+            out/linux-*.deb
           retention-days: 7          # 附件保存天数（可选，默认 90 天）
 
 
@@ -106,4 +106,4 @@ jobs:
             build.log
             alioth_ak3.zip
             alioth_apatch_ak3.zip
-            out/linux-*.tar.bz2
+            out/linux-*.deb

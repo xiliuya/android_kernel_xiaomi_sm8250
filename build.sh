@@ -68,7 +68,7 @@ if [ -f "out/arch/arm64/boot/Image" ]; then
     [ -f "out/arch/arm64/boot/dtbo.img" ] && echo "DTBO 位置: out/arch/arm64/boot/dtbo.img" 
 
     # ==================== 新增：打包 Header ====================
-    echo "📦 正在打包 Kernel Headers (tar-pkg)..."
+    echo "📦 正在打包 Kernel Headers (bindeb-pkg)..."
     make O=out \
         CC=clang \
         LD=ld.lld \
@@ -78,9 +78,9 @@ if [ -f "out/arch/arm64/boot/Image" ]; then
         OBJDUMP=llvm-objdump \
         STRIP=llvm-strip \
         LLVM=1 \
-        LLVM_IAS=1 tarbz2-pkg
+        LLVM_IAS=1 bindeb-pkg
 
-    HEADER_TAR=$(find out -maxdepth 1 -name "linux-*.tar.bz2" | head -n 1)
+    HEADER_TAR=$(find out -maxdepth 1 -name "linux-*.deb" | head -n 1)
     [ -n "$HEADER_TAR" ] && echo "✅ Headers 打包完成: $HEADER_TAR"
     # ===========================================================
 else
