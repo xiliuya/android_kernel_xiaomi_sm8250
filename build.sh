@@ -66,6 +66,23 @@ if [ -f "out/arch/arm64/boot/Image" ]; then
     echo "🎉 内核编译成功！"
     echo "Image 位置: out/arch/arm64/boot/Image"
     [ -f "out/arch/arm64/boot/dtbo.img" ] && echo "DTBO 位置: out/arch/arm64/boot/dtbo.img" 
+
+    # ==================== 新增：打包 Header ====================
+    echo "📦 正在打包 Kernel Headers (tar-pkg)..."
+    make O=out \
+        CC=clang \
+        LD=ld.lld \
+        AR=llvm-ar \
+        NM=llvm-nm \
+        OBJCOPY=llvm-objcopy \
+        OBJDUMP=llvm-objdump \
+        STRIP=llvm-strip \
+        LLVM=1 \
+        LLVM_IAS=1 tarbz2-pkg
+
+    HEADER_TAR=$(find out -maxdepth 1 -name "linux-*.tar.bz2" | head -n 1)
+    [ -n "$HEADER_TAR" ] && echo "✅ Headers 打包完成: $HEADER_TAR"
+    # ===========================================================
 else
     echo ""
     echo "❌ 编译失败！正在从日志中提取关键错误信息..."
