@@ -65,7 +65,6 @@ make -j$(nproc) O=out \
 if [ -f "out/arch/arm64/boot/Image" ]; then
     echo "🎉 内核编译成功！"
     echo "Image 位置: out/arch/arm64/boot/Image"
-    
     [ -f "out/arch/arm64/boot/dtbo.img" ] && echo "DTBO 位置: out/arch/arm64/boot/dtbo.img" 
 else
     echo ""
@@ -76,3 +75,4 @@ else
     echo "💡 完整日志已保存至: ${LOG_FILE}"
     echo "💡 错误提炼已保存至: ${ERR_FILE}"
 fi
+exit 0

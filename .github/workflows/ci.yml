@@ -1,4 +1,4 @@
-name: magisk module build
+name: Anykernel3 module build
 on:
   push:
     tags:
@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   build:
-    name: Build a magisk module zip
+    name: Build a Anykernel3 module zip
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository code
@@ -58,6 +58,19 @@ jobs:
 
       - run: echo "🍏 This job's status is ${{ job.status }}."
 
+      # 3. 上传构建产物作为附件
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kernel_Build_file
+          if: github.event_name == 'workflow_dispatch'
+          path: |
+            out/arch/arm64/boot/Image
+            out/arch/arm64/boot/
+            build_errors.txt
+            build.log
+          retention-days: 7          # 附件保存天数（可选，默认 90 天）
+
       - name: Upload Release
         # 仅在非 act 本地测试，且确实是 Push Tag 或手动触发时才执行发布
         if: ${{ !env.ACT && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch') }}
@@ -65,4 +78,6 @@ jobs:
         with:
           files: |
             out/arch/arm64/boot/Image
-            out/arch/arm64/boot/dtbo.img
+            out/arch/arm64/boot/
+            build_errors.txt
+            build.log
