@@ -13,7 +13,7 @@ fi
 
 echo "📁 当前工作根目录为: ${BASE_DIR}"
 
-#cd "${BASE_DIR}/kernel_sm8250" || { echo "❌ 无法进入目录 ${BASE_DIR}/kernel_sm8250"; exit 1; }
+cd "${BASE_DIR}" || { echo "❌ 无法进入目录 ${BASE_DIR}/kernel_sm8250"; exit 1; }
 
 # 1. 设置环境变量与编译器工具链路径
 export PATH="${BASE_DIR}/android-clang/clang-r547379/bin:$PATH"
@@ -68,19 +68,12 @@ if [ -f "out/arch/arm64/boot/Image" ]; then
     [ -f "out/arch/arm64/boot/dtbo.img" ] && echo "DTBO 位置: out/arch/arm64/boot/dtbo.img" 
 
     # ==================== 新增：打包 Header ====================
-    echo "📦 正在打包 Kernel Headers (bindeb-pkg)..."
-    make O=out \
-        CC=clang \
-        LD=ld.lld \
-        AR=llvm-ar \
-        NM=llvm-nm \
-        OBJCOPY=llvm-objcopy \
-        OBJDUMP=llvm-objdump \
-        STRIP=llvm-strip \
-        LLVM=1 \
-        LLVM_IAS=1 bindeb-pkg
+    echo "📦 正在打包 Kernel Headers (export_kernel_headers.sh)..."
+    HEADER_TAR="headers.tar.gz"
+    mkdir -p headers
+    bash export_kernel_headers.sh headers/ out/ 
+    tar czf "$HEADER_TAR" headers
 
-    HEADER_TAR=$(find out -maxdepth 1 -name "linux-*.deb" | head -n 1)
     [ -n "$HEADER_TAR" ] && echo "✅ Headers 打包完成: $HEADER_TAR"
     # ===========================================================
 else
@@ -92,4 +85,3 @@ else
     echo "💡 完整日志已保存至: ${LOG_FILE}"
     echo "💡 错误提炼已保存至: ${ERR_FILE}"
 fi
-exit 0

@@ -90,7 +90,7 @@ jobs:
             build.log
             alioth_ak3.zip
             alioth_apatch_ak3.zip
-            out/linux-*.deb
+            headers.tar.gz
           retention-days: 7          # 附件保存天数（可选，默认 90 天）
 
 
@@ -106,4 +106,4 @@ jobs:
             build.log
             alioth_ak3.zip
             alioth_apatch_ak3.zip
-            out/linux-*.deb
+            headers.tar.gz
