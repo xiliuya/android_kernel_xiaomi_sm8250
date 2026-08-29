@@ -7,7 +7,7 @@ set -e
 if [ -z "$1" ]; then
 	echo "用法: $0 <导出 Header 路径> [Kernel Build/Output 路径 (O=out)] [Kernel Src 路径]"
 	echo "示例 (普通模式):  $0 /tmp/my-headers"
-	echo "示例 (O=out模式): $0 /tmp/my-headers /path/to/kernel/out /path/to/kernel/src"
+	echo "示例 (O=out模式): $0 ./headers ./out ."
 	exit 1
 fi
 
@@ -27,7 +27,7 @@ armv*) karch="arm" ;;
 esac
 
 echo "=========================================="
-echo "开始导出内核 Headers (Android / Arch 标准修复版)"
+echo "开始导出内核 Headers (Android / Arch 终极修正版)"
 echo "源码目录 (Src)   : $SRC_DIR"
 echo "构建目录 (Build) : $BUILD_DIR"
 echo "导出目录 (Dest)  : $DEST_DIR"
@@ -55,19 +55,24 @@ copy_file_if_exists() {
 	done
 }
 
-# 纯 grep 检查内核配置函数（避免依赖 scripts/config）
+# 纯 grep 检查内核配置函数（避免依赖未生成的 scripts/config）
 is_config_enabled() {
 	local config_name="$1"
 	grep -q "^${config_name}=y" "$BUILD_DIR/.config" 2>/dev/null
 }
 
-echo "[1/8] 安装基础配置文件、符号表及 vmlinux..."
-copy_file_if_exists "." .config Makefile Module.symvers System.map localversion.* version vmlinux tools/bpf/bpftool/vmlinux.h vmlinux.h
+echo "[1/8] 复制核心构建文件（强制使用源码根目录原生 Makefile）..."
+# 关键修复：强制取 SRC_DIR 的原始 Makefile/Kconfig，防止使用 out/ 里的 mkmakefile 重定向包装器
+install -m644 "$SRC_DIR/Makefile" "$DEST_DIR/Makefile"
+install -m644 "$SRC_DIR/Kconfig" "$DEST_DIR/Kconfig"
+
+# 提取其他生成和配置文件
+copy_file_if_exists "." .config Module.symvers System.map localversion.* version vmlinux tools/bpf/bpftool/vmlinux.h vmlinux.h
 copy_file_if_exists "kernel" kernel/Makefile
 copy_file_if_exists "arch/$karch" arch/$karch/Makefile
 
-echo "[2/8] 优先复制构建脚本 (scripts) 与工具..."
-# O=out 时优先使用 BUILD_DIR 下编译好的 scripts 工具
+echo "[2/8] 复制构建脚本 (scripts) 与工具..."
+# O=out 时优先使用 BUILD_DIR 下编译好的 scripts 二进制工具
 if [ -d "$BUILD_DIR/scripts" ]; then
 	cp -t "$DEST_DIR" -a "$BUILD_DIR/scripts"
 elif [ -d "$SRC_DIR/scripts" ]; then
@@ -79,7 +84,6 @@ if [ -f "$DEST_DIR/scripts/gdb/vmlinux-gdb.py" ]; then
 fi
 
 echo "[3/8] 安装编译辅助工具 (objtool, resolve_btfids)..."
-# 使用直接解析 .config 的方式代替 scripts/config
 if is_config_enabled "CONFIG_HAVE_STACK_VALIDATION"; then
 	[ -f "$BUILD_DIR/tools/objtool/objtool" ] && install -Dt "$DEST_DIR/tools/objtool" "$BUILD_DIR/tools/objtool/objtool"
 fi
@@ -88,13 +92,19 @@ if is_config_enabled "CONFIG_DEBUG_INFO_BTF_MODULES"; then
 	[ -f "$BUILD_DIR/tools/bpf/resolve_btfids/resolve_btfids" ] && install -Dt "$DEST_DIR/tools/bpf/resolve_btfids" "$BUILD_DIR/tools/bpf/resolve_btfids/resolve_btfids"
 fi
 
-echo "[4/8] 复制 include 核心头文件及 asm-offsets.s..."
-cp -t "$DEST_DIR" -a "$SRC_DIR/include"
-[ "$BUILD_DIR" != "$SRC_DIR" ] && [ -d "$BUILD_DIR/include" ] && cp -rt "$DEST_DIR" "$BUILD_DIR/include"/*
+echo "[4/8] 复制 include 核心头文件及 asm-offsets.s (自动展开软链接)..."
+# 使用 cp -aL 解开高通/Android 头文件中的相对软链接 (如 msm_ion.h)
+cp -aL "$SRC_DIR/include" "$DEST_DIR/" 2>/dev/null || cp -a "$SRC_DIR/include" "$DEST_DIR/"
+if [ "$BUILD_DIR" != "$SRC_DIR" ] && [ -d "$BUILD_DIR/include" ]; then
+	cp -aL "$BUILD_DIR/include/"* "$DEST_DIR/include/" 2>/dev/null || cp -a "$BUILD_DIR/include/"* "$DEST_DIR/include/"
+fi
 
 mkdir -p "$DEST_DIR/arch/$karch"
-cp -t "$DEST_DIR/arch/$karch" -a "$SRC_DIR/arch/$karch/include"
-[ "$BUILD_DIR" != "$SRC_DIR" ] && [ -d "$BUILD_DIR/arch/$karch/include" ] && cp -rt "$DEST_DIR/arch/$karch" "$BUILD_DIR/arch/$karch/include"/*
+cp -aL "$SRC_DIR/arch/$karch/include" "$DEST_DIR/arch/$karch/" 2>/dev/null || cp -a "$SRC_DIR/arch/$karch/include" "$DEST_DIR/arch/$karch/"
+if [ "$BUILD_DIR" != "$SRC_DIR" ] && [ -d "$BUILD_DIR/arch/$karch/include" ]; then
+	mkdir -p "$DEST_DIR/arch/$karch/include"
+	cp -aL "$BUILD_DIR/arch/$karch/include/"* "$DEST_DIR/arch/$karch/include/" 2>/dev/null || cp -a "$BUILD_DIR/arch/$karch/include/"* "$DEST_DIR/arch/$karch/include/"
+fi
 
 copy_file_if_exists "arch/$karch/kernel" "arch/$karch/kernel/asm-offsets.s"
 
@@ -134,7 +144,7 @@ if is_config_enabled "CONFIG_RUST"; then
 	fi
 fi
 
-echo "[8/8] 执行清理：移除无用文件、断裂软链接及 loose .o..."
+echo "[8/8] 执行清理：移除无用架构、断裂软链接及 loose .o..."
 for arch in "$DEST_DIR"/arch/*/; do
 	[[ "$arch" = */"$karch"/ ]] && continue
 	rm -rf "$arch"
