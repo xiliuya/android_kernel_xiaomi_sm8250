@@ -71,7 +71,7 @@ if [ -f "out/arch/arm64/boot/Image" ]; then
     echo "📦 正在打包 Kernel Headers (export_kernel_headers.sh)..."
     HEADER_TAR="headers.tar.gz"
     mkdir -p headers
-    bash export_kernel_headers.sh headers/ out/ 
+    bash export_kernel_headers.sh headers/ out/ .
     tar czf "$HEADER_TAR" headers
 
     [ -n "$HEADER_TAR" ] && echo "✅ Headers 打包完成: $HEADER_TAR"
