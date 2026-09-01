@@ -35,7 +35,7 @@ mkdir -p out
 cat arch/arm64/configs/vendor/kona-perf_defconfig \
     arch/arm64/configs/vendor/xiaomi/sm8250-common.config \
     arch/arm64/configs/vendor/xiaomi/alioth.config \
-    Droidspace.config > out/.config
+    crun.config > out/.config
 
 echo "=== 1. 拼接完成，碎片配置行数 ==="
 wc -l out/.config
